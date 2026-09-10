@@ -547,7 +547,7 @@
       
       <div class="form-group">
         <label for="inputStudentId">ID</label>
-        <input type="text" id="inputStudentId" class="form-control" placeholder="ID를 입력하세요 (교사는 teacher 입력)">
+        <input type="text" id="inputStudentId" class="form-control" placeholder="ID를 입력하세요">
       </div>
 
       <div class="form-group">
@@ -558,7 +558,6 @@
       <button class="login-btn" id="btnLoginSubmit" onclick="handleLogin()">탐구 시작</button>
 
       <div style="margin-top: 16px; font-size: 0.75rem; color: #94a3b8; text-align: center;">
-        계정 정보는 구글 스프레드시트에 등록된 정보로 확인합니다.
       </div>
     </div>
   </div>
@@ -679,7 +678,7 @@
           <h3 style="font-size: 1.18rem; color: var(--primary); margin-bottom: 8px;">
             📈 관측 데이터를 이용한 진앙 거리 - P파 주행 시간 그래프
           </h3>
-          <p class="desc">표의 진앙 거리와 P파 주행 시간 데이터를 분산형 차트로 시각화한 주시곡선입니다. (Y축 높이 확장)</p>
+          <p class="desc">표의 진앙 거리와 P파 주행 시간 데이터를 분산형 차트로 시각화한 주시곡선입니다. </p>
           <div style="position: relative; height: 700px;"> <!-- 기존 350px -> 700px 로 2배 확장 -->
             <canvas id="tab1Chart"></canvas>
           </div>
@@ -932,7 +931,7 @@
     /* =========================================================================
        전역 설정 (선생님이 여기에 구글 앱스 스크립트 웹앱 URL을 입력하세요)
        ========================================================================= */
-    const GAS_ENDPOINT = ""; // 예: "https://script.google.com/macros/s/AKfyc.../exec"
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwOaMmVX4VPlplhxXU05mas-athMnX7hGgV_PwMB_TBiJ5CiCotzF8c74n8tlFxNzN_zA/exec"; // 예: "https://script.google.com/macros/s/AKfyc.../exec"
 
     let currentStudentId = "";
     let currentPassword = "";
