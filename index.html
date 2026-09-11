@@ -31,7 +31,13 @@
     .form-control:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
     .login-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
     
-    header { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: white; padding: 18px 30px; display: flex; justify-content: space-between; align-items: center; }
+    header { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* 로고와 타이틀을 가로로 배치하기 위한 스타일 */
+    .header-title-container { display: flex; align-items: center; gap: 14px; }
+    .header-logo { height: 46px; width: auto; object-fit: contain; background: white; padding: 3px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    
     .student-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 6px 14px; border-radius: 20px; font-size: 0.88rem; font-weight: 600; color: #93c5fd;}
     
     .tab-nav { display: flex; background: #ffffff; border-bottom: 2px solid var(--border); padding: 0 30px; gap: 10px; position: sticky; top: 0; z-index: 100; }
@@ -101,7 +107,12 @@
   </div>
 
   <header>
-    <h1>지구시스템과학 인터랙티브 탐구실</h1>
+    <!-- 로고 삽입 및 타이틀 래퍼 -->
+    <div class="header-title-container">
+      <img src="세일고CI-01.png" alt="세일고 로고" class="header-logo">
+      <h1>지구시스템과학 인터랙티브 탐구실</h1>
+    </div>
+    
     <div style="display: flex; align-items: center; gap: 12px;">
       <button class="btn-primary" onclick="exportReportToPDF()" style="background:#059669; padding:8px 16px;">📄 보고서 PDF 저장</button>
       <button class="btn-outline" onclick="location.reload()" style="background:#ef4444;">로그아웃</button>
@@ -182,7 +193,6 @@
               </div>
             </div>
             
-            <!-- 복구된 Chart 캔버스 -->
             <div style="position: relative; height: 320px;">
               <canvas id="travelTimeChart"></canvas>
             </div>
@@ -190,7 +200,6 @@
             <div class="qa-card">
               <h3 style="font-size:1.15rem; color:var(--primary); margin-bottom:16px;">주시곡선 심층 해석 탐구 과제</h3>
               
-              <!-- 복구된 Q1, Q2, Q3 지문 -->
               <div class="qa-item">
                 <div class="qa-label"><span class="q-num">Q1</span><span>직접파 추세선의 기울기보다 굴절파 추세선의 기울기가 완만한 이유를 서술하시오.</span></div>
                 <textarea id="tab2_q1" class="auto-textarea" placeholder="답변을 입력하세요..." oninput="autoResize(this)"></textarea>
@@ -227,7 +236,6 @@
               </div>
             </div>
 
-            <!-- 복구된 시뮬레이션 캔버스 -->
             <div class="sim-container">
               <canvas id="waveCanvas" width="600" height="240"></canvas>
               <div class="sim-controls">
@@ -285,7 +293,6 @@
             지도를 다운로드하여 그림판에서 두 원의 교점을 잇는 공통현을 그어 <strong>진앙(E)</strong>을 표시한 뒤 첨부하고, 피타고라스 정리를 이용해 <strong>진원 깊이</strong>를 계산하세요.
           </p>
 
-          <!-- 복구된 지문 1, 2 -->
           <div class="qa-item">
             <div class="qa-label"><span class="q-num">1</span><span>진앙 거리 원이 작도된 이미지를 그림판 등을 이용해 진앙 지점을 표시하고 첨부하시오.</span></div>
             <div class="image-preview-container">
@@ -311,8 +318,8 @@
 
   <script>
     // =========================================================================
-    // ★ 새로 배포한 웹앱 URL을 입력하세요! ★
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxR3y-8Y_YhYH_UZ3oc4E_RGe8zvrd7WDX4MN783CAE_cLEUa7aT9G5qNbsEGVO3iG4mA/exec"; 
+    // ★ 반드시 "새 배포"를 통해 발급받은 완전히 새로운 웹앱 URL을 입력하세요! ★
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzuRO92k5IZ-48o5mcqcIhgyLM1Mh2wLpC3BfHMku53rFG6VjbRnGJ8VSG8t24RHDhKHA/exec"; 
     // =========================================================================
 
     let currentStudentId = "", currentLoginRole = 'student';
@@ -478,7 +485,6 @@
       });
     }
 
-    // ★ 복구된 탭 2의 주시곡선 차트 및 모델 연동
     let chart2 = null;
     let currentV1 = 5.6, currentV2 = 8.0, currentD = 250, currentThickness = 50.4;
     function initChart() {
@@ -514,7 +520,6 @@
         document.getElementById('calcResultDisplay').innerHTML = `산출된 지각의 두께 (d): <strong>${currentThickness.toFixed(1)} km</strong>`;
       }
 
-      // 차트 데이터 갱신
       const directLine = [{ x: 0, y: 0 }, { x: 500, y: +(500 / currentV1).toFixed(2) }];
       const intercept = (currentD / currentV1) - (currentD / currentV2);
       const refractLine = [
@@ -528,11 +533,9 @@
         chart2.update();
       }
 
-      updateRaceOutcomeUI();
-      drawSimulationFrame(simCurrentTime);
+      updateRaceOutcomeUI(); drawSimulationFrame(simCurrentTime);
     }
 
-    // ★ 복구된 1:1 완벽 비율 시뮬레이션
     const simCanvas = document.getElementById('waveCanvas'); const simCtx = simCanvas.getContext('2d');
     let simAnimationId = null, simIsPlaying = false, simCurrentTime = 0, targetDist = 260;
 
@@ -577,7 +580,6 @@
       simCtx.font = '11px sans-serif'; simCtx.fillStyle = '#94a3b8'; simCtx.fillText(`지각 (v₁ = ${currentV1.toFixed(1)} km/s)`, startX + 10, startY + 18);
       simCtx.fillStyle = '#cbd5e1'; simCtx.fillText(`상부 맨틀 (v₂ = ${currentV2.toFixed(1)} km/s)`, startX + 10, mohoY + 20);
 
-      // 마커
       simCtx.fillStyle = '#ef4444'; simCtx.beginPath(); simCtx.arc(startX, startY, 7, 0, Math.PI * 2); simCtx.fill();
       const stationX = startX + targetDist * scale;
       simCtx.fillStyle = '#38bdf8'; simCtx.beginPath(); simCtx.arc(stationX, startY, 7, 0, Math.PI * 2); simCtx.fill();
@@ -675,17 +677,13 @@
       if (simIsPlaying) simStep();
     }
 
-    /* 탭 변경 및 지도 리사이즈 처리 보강 */
     function switchTab(index) {
       document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
       document.querySelectorAll('.tab-pane').forEach((pane, i) => pane.classList.toggle('active', i === index));
       
       if (index === 0) { setTimeout(() => { if (tab1Chart) tab1Chart.resize(); }, 100); }
       else if (index === 1) { setTimeout(() => { if (chart2) chart2.resize(); }, 100); }
-      else if (index === 2) { 
-        // 탭 3으로 넘어갈 때 Leaflet 지도를 정확히 다시 렌더링
-        setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 200); 
-      }
+      else if (index === 2) { setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 200); }
     }
 
     let leafletMap = null, stationCircles = [];
@@ -697,7 +695,6 @@
       leafletMap = L.map('map', { preferCanvas: true }).setView([36.3, 127.9], 7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, crossOrigin: true }).addTo(leafletMap);
       
-      // 관측소 마커 미리 표시
       L.circleMarker([geoStations.A.lat, geoStations.A.lng], { radius:6, color:geoStations.A.color, fillOpacity:1 }).addTo(leafletMap).bindTooltip("A(인천)");
       L.circleMarker([geoStations.B.lat, geoStations.B.lng], { radius:6, color:geoStations.B.color, fillOpacity:1 }).addTo(leafletMap).bindTooltip("B(부산)");
       L.circleMarker([geoStations.C.lat, geoStations.C.lng], { radius:6, color:geoStations.C.color, fillOpacity:1 }).addTo(leafletMap).bindTooltip("C(광주)");
