@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- PDF 저장을 위한 html2pdf 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
@@ -35,7 +35,6 @@
     /* 화이트 테마 헤더 (세일고 CI 자연스러운 융화) */
     header { background: #ffffff; color: var(--primary); padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
     .header-title-container { display: flex; align-items: center; gap: 14px; }
-    /* 로고는 배경을 없애고 헤더의 흰색 배경을 그대로 사용 */
     .header-logo { height: 48px; width: auto; object-fit: contain; }
     header h1 { font-size: 1.4rem; font-weight: 800; margin: 0; color: #1e3a8a; letter-spacing: -0.5px;}
     
@@ -131,7 +130,6 @@
   <!-- 2. 헤더 영역 -->
   <header>
     <div class="header-title-container">
-      <!-- 배경을 투명하게 융화시킨 세일고 로고 -->
       <img src="세일고CI-01.png" alt="세일고 로고" class="header-logo">
       <h1>지구시스템과학 인터랙티브 탐구실</h1>
     </div>
@@ -428,13 +426,12 @@
   <script>
     // =========================================================================
     // ★ 반드시 "새 배포"를 통해 발급받은 완전히 새로운 웹앱 URL을 입력하세요! ★
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyGaJIL_21xxmcI3Kst1Uqh7QDYkpEhbOpVj_e7gGbzZUFq0DsBcbWns-mkIecDZCIurQ/exec"; 
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzZx_OjMqiXM44S6CLzMhBDqnC06GErMAuoSp7B4qSA_TzNbgaHED2aKchB9xyAIUaQBw/exec"; 
     // =========================================================================
 
     let currentStudentId = "", currentStudentName = "", currentLoginRole = 'student';
     let uploadedImageBase64 = "";
 
-    // 통신 유틸리티
     function fetchGAS(payload) {
       return fetch(GAS_ENDPOINT, {
         method: 'POST',
@@ -444,7 +441,6 @@
       }).then(res => res.json());
     }
 
-    // 1. 로그인 핸들러
     function handleLogin() {
       const idInput = document.getElementById('inputStudentId').value.trim();
       const pwdInput = document.getElementById('inputPassword').value.trim();
@@ -482,18 +478,16 @@
               document.getElementById('tab2_q3').value = data.answers.t2_q3 || "";
               document.getElementById('tab3_q2').value = data.answers.t3_q2 || "";
               
-              if (data.answers.t3_img) {
+              if (data.answers.t3_img && data.answers.t3_img.startsWith('data:image')) {
                 uploadedImageBase64 = data.answers.t3_img;
                 document.getElementById('imagePreview').src = uploadedImageBase64;
                 document.getElementById('imagePreview').style.display = 'block';
               }
-              // 텍스트 영역 높이 자동 조절
               setTimeout(() => { document.querySelectorAll('.auto-textarea').forEach(el => autoResize(el)); }, 100);
             }
           }
           document.getElementById('loginModal').style.display = 'none';
           
-          // 로그인 후 차트 및 지도 렌더링 리프레시
           setTimeout(() => {
             if(tab1Chart) tab1Chart.resize();
             if(chart2) chart2.resize();
@@ -511,7 +505,6 @@
       .finally(() => { btn.innerText = "접속하기"; btn.disabled = false; });
     }
 
-    // 2. 통합 제출 (전체 저장)
     function submitAllAnswers() {
       const statusSpans = document.querySelectorAll('.save-status');
       statusSpans.forEach(span => { span.style.color = "var(--primary-light)"; span.innerText = "저장 중..."; });
@@ -543,7 +536,6 @@
       });
     }
 
-    // 3. 교사 대시보드 로드
     let allStudentsData = [];
     function loadTeacherDashboard() {
       const tbody = document.getElementById('teacher-table-body');
@@ -583,9 +575,7 @@
       .catch(err => { tbody.innerHTML = '<tr><td colspan="5" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>'; });
     }
 
-    // 4. PDF 생성 로직
     function exportMyReportToPDF() {
-      // 본인이 작성한 현재 화면의 데이터 수집
       const ans = {
         t1_q1: document.getElementById('tab1_q1').value || '미작성',
         t1_q2: document.getElementById('tab1_q2').value || '미작성',
@@ -599,13 +589,11 @@
     }
 
     function generatePDFForStudent(index) {
-      // 교사가 특정 학생의 데이터를 기반으로 PDF 생성
       const st = allStudentsData[index];
       executePDFGeneration(st.id, st.name, st.answers);
     }
 
     function executePDFGeneration(sId, sName, ans) {
-      // 템플릿에 데이터 채워넣기
       document.getElementById('pdf-student-id').innerText = sId;
       document.getElementById('pdf-student-name').innerText = sName || "이름 미상";
       document.getElementById('pdf-t1-q1').innerText = ans.t1_q1 || "미작성";
@@ -617,7 +605,7 @@
       
       const imgEl = document.getElementById('pdf-t3-img');
       const noImgEl = document.getElementById('pdf-t3-noimg');
-      if (ans.t3_img) {
+      if (ans.t3_img && ans.t3_img.startsWith('data:image')) {
         imgEl.src = ans.t3_img;
         imgEl.style.display = 'inline-block';
         noImgEl.style.display = 'none';
@@ -626,7 +614,6 @@
         noImgEl.style.display = 'block';
       }
 
-      // html2pdf 실행
       const element = document.getElementById('pdf-content');
       const opt = {
         margin: [10, 10, 10, 10],
@@ -636,12 +623,10 @@
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       
-      // 사용자에게 알림
-      alert(`${sId} 학생의 PDF 다운로드를 시작합니다. 잠시만 기다려주세요.`);
+      alert(`${sId} 학생의 PDF 생성을 시작합니다. 잠시만 기다려주세요.`);
       html2pdf().set(opt).from(element).save();
     }
 
-    // 5. 유틸 및 뷰 로직
     function handleImageUpload(e) {
       const file = e.target.files[0];
       if (file) {
@@ -665,9 +650,6 @@
       else if (index === 2) { setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 200); }
     }
 
-    // ==========================================================
-    // 6. 데이터 세팅 및 차트, 시뮬레이션, 지도 초기화 로직 (이전과 동일)
-    // ==========================================================
     const baseTimeSec = 48 * 60 + 49.4;
     const rawStations = [
       { id: 1,  dist: 45.8,  arrStr: "48분 55.4초", arrSec: 48*60 + 55.4 }, 
@@ -984,3 +966,4 @@
   </script>
 </body>
 </html>
+```eof
