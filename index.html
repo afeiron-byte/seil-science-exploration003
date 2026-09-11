@@ -90,28 +90,9 @@
     </div>
   </div>
 
-  <!-- 교사 대시보드 모달 (기존 구조 유지) -->
-  <div id="teacherDashboardModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.88); z-index:99999; align-items:center; justify-content:center; padding:20px;">
-    <!-- ... (이전 코드와 동일하므로 디자인 부분 유지) ... -->
-    <div style="background: white; width: 95%; max-width: 1200px; height: 90vh; border-radius: 12px; padding: 20px; overflow: auto;">
-      <div style="display: flex; justify-content: space-between;">
-        <h2>👨‍🏫 학생 제출 현황 관리</h2>
-        <button class="btn-outline" onclick="document.getElementById('teacherDashboardModal').style.display='none'">닫기 ✕</button>
-      </div>
-      <div style="margin-top:20px; display: flex; gap: 10px;">
-        <button class="btn-primary" onclick="refreshStudentSubmissions()">🔄 새로고침</button>
-        <button class="btn-primary" style="background:#059669;" onclick="exportSubmissionsToCSV()">📥 CSV 다운로드</button>
-      </div>
-      <div id="teacherStudentListContainer" style="margin-top:20px;">학생 데이터 동기화 대기 중...</div>
-    </div>
-  </div>
-
   <header>
     <h1>지구시스템과학 인터랙티브 탐구실</h1>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <button class="btn-outline" id="btnTeacherDash" onclick="document.getElementById('teacherDashboardModal').style.display='flex'; refreshStudentSubmissions();" style="display:none; background:#4338ca;">
-        👨‍🏫 대시보드
-      </button>
       <button class="btn-primary" onclick="exportReportToPDF()" style="background:#059669;">📄 보고서 저장</button>
       <button class="btn-outline" onclick="location.reload()" style="background:#ef4444;">로그아웃</button>
       <div class="student-badge" id="studentDisplay">로그인 대기 중</div>
@@ -144,7 +125,7 @@
         </div>
 
         <div class="qa-card">
-          <h3>탐구 분석 과제 (d = (D / 2) × √[ (v₂ - v₁) / (v₂ + v₁) ])</h3>
+          <h3>탐구 분석 과제</h3>
           <div class="qa-item" style="margin-top:15px;">
             <div class="qa-label"><span class="q-num">1</span><span>위 그래프를 이용하여 교차 거리를 구하시오.</span></div>
             <textarea id="tab1_q1" class="auto-textarea"></textarea>
@@ -241,11 +222,21 @@
 
   <script>
     // =========================================================================
-    // ★ 선생님의 Google Apps Script 웹앱 URL을 여기에 붙여넣으세요! ★
-    const GAS_ENDPOINT = "https://script.google.com/a/macros/icedu.kr/s/AKfycbxnxkSQPYCnm8LD_cxmF168VZBE824FK8FA_GCpRoDjpRi-9gRS84b08cIuuL6cNJ0DcA/exec"; 
+    // ★ 새로 배포한 웹앱 URL을 입력하세요! ★
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwCkQD8aisPm7e_J7NagdUXqzWeDeA9FGvTfALZoz73Wi_mY1Zr9R2953ZiLau-EKMC8Q/exec"; 
     // =========================================================================
 
     let currentStudentId = "", currentStudentName = "", currentLoginRole = 'student';
+
+    // 서버와 통신하는 래퍼 함수 (리다이렉션 처리 포함)
+    function fetchGAS(payload) {
+      return fetch(GAS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow', // 구글 서버의 302 리다이렉트를 안전하게 따라감
+        body: JSON.stringify(payload)
+      }).then(res => res.json());
+    }
 
     function handleLogin() {
       const idInput = document.getElementById('inputStudentId').value.trim();
@@ -259,12 +250,7 @@
       btn.innerText = "로그인 확인 중...";
       btn.disabled = true;
 
-      fetch(GAS_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'login', studentId: idInput, studentName: nameInput, password: pwdInput })
-      })
-      .then(res => res.json())
+      fetchGAS({ action: 'login', studentId: idInput, studentName: nameInput, password: pwdInput })
       .then(data => {
         if (data.status === 'success') {
           currentStudentId = idInput;
@@ -273,7 +259,6 @@
 
           if (data.role === 'teacher') {
             document.getElementById('studentDisplay').innerText = `👨‍🏫 교사 모드`;
-            document.getElementById('btnTeacherDash').style.display = "inline-flex";
           } else {
             document.getElementById('studentDisplay').innerText = `${idInput} ${nameInput} (접속됨)`;
           }
@@ -284,7 +269,7 @@
       })
       .catch(err => {
         console.error(err);
-        alert("서버 연결에 실패했습니다. 인터넷 상태를 확인하거나 웹앱 URL을 확인하세요.");
+        alert("서버 연결에 실패했습니다. 구글 시트 배포 설정을 확인해 주세요.");
       })
       .finally(() => {
         btn.innerText = "접속하기";
@@ -292,115 +277,22 @@
       });
     }
 
-    const baseTimeSec = 48 * 60 + 49.4;
-    
-    // 1번 관측소 주행시간 6.0초 (48분 55.4초) 적용
-    const rawStations = [
-      { id: 1,  dist: 45.8,  arrStr: "48분 55.4초", arrSec: 48*60 + 55.4 }, 
-      { id: 2,  dist: 59.8,  arrStr: "49분 00.3초", arrSec: 49*60 + 0.3 },
-      { id: 3,  dist: 90.5,  arrStr: "49분 04.9초", arrSec: 49*60 + 4.9 },
-      { id: 4,  dist: 109.3, arrStr: "49분 08.5초", arrSec: 49*60 + 8.5 },
-      { id: 5,  dist: 123.0, arrStr: "49분 10.4초", arrSec: 49*60 + 10.4 },
-      { id: 6,  dist: 138.7, arrStr: "49분 16.0초", arrSec: 49*60 + 16.0 },
-      { id: 7,  dist: 150.1, arrStr: "49분 15.8초", arrSec: 49*60 + 15.8 },
-      { id: 8,  dist: 188.6, arrStr: "49분 19.9초", arrSec: 49*60 + 19.9 },
-      { id: 9,  dist: 199.4, arrStr: "49분 24.0초", arrSec: 49*60 + 24.0 },
-      { id: 10, dist: 201.7, arrStr: "49분 22.4초", arrSec: 49*60 + 22.4 },
-      { id: 11, dist: 224.8, arrStr: "49분 24.0초", arrSec: 49*60 + 24.0 },
-      { id: 12, dist: 239.4, arrStr: "49분 27.0초", arrSec: 49*60 + 27.0 },
-      { id: 13, dist: 250.0, arrStr: "49분 31.9초", arrSec: 49*60 + 31.9 },
-      { id: 14, dist: 251.0, arrStr: "49분 32.4초", arrSec: 49*60 + 32.4 },
-      { id: 15, dist: 298.0, arrStr: "49분 34.6초", arrSec: 49*60 + 34.6 },
-      { id: 16, dist: 300.0, arrStr: "49분 36.3초", arrSec: 49*60 + 36.3 },
-      { id: 17, dist: 308.2, arrStr: "49분 37.7초", arrSec: 49*60 + 37.7 },
-      { id: 18, dist: 337.5, arrStr: "49분 40.3초", arrSec: 49*60 + 40.3 },
-      { id: 19, dist: 347.0, arrStr: "49분 42.7초", arrSec: 49*60 + 42.7 },
-      { id: 20, dist: 366.7, arrStr: "49분 45.5초", arrSec: 49*60 + 45.5 },
-      { id: 21, dist: 402.0, arrStr: "49분 49.5초", arrSec: 49*60 + 49.5 },
-      { id: 22, dist: 446.4, arrStr: "49분 54.4초", arrSec: 49*60 + 54.4 }
-    ];
-    const stationData = rawStations.map(st => ({ ...st, travelTime: Number((st.arrSec - baseTimeSec).toFixed(1)) }));
-
-    function renderTable() {
-      const tbody = document.getElementById('tableBody');
-      stationData.forEach(st => {
-        tbody.innerHTML += `<tr><td><strong>#${st.id}</strong></td><td>${st.dist.toFixed(1)}</td><td>${st.arrStr}</td><td><strong style="color:var(--primary);">${st.travelTime.toFixed(1)}</strong></td></tr>`;
-      });
-    }
-
-    // Chart.js 커스텀 플러그인 (추세선 아래 텍스트 그리기)
-    const formulaPlugin = {
-      id: 'formulaLabel',
-      afterDraw: (chart) => {
-        const ctx = chart.ctx;
-        ctx.save();
-        ctx.font = 'bold 15px sans-serif';
-        
-        // 직접파 (y = 0.1568x + 1.5626) 텍스트 위치 계산 (x=130 픽셀 위치 기준)
-        let xPg = chart.scales.x.getPixelForValue(110);
-        let yPg = chart.scales.y.getPixelForValue(0.1568 * 110 + 1.5626) + 22; 
-        ctx.fillStyle = '#2563eb';
-        ctx.fillText('y = 0.1568x + 1.5626', xPg, yPg);
-
-        // 굴절파 (y = 0.121x + 10.996) 텍스트 위치 계산 (x=330 픽셀 위치 기준)
-        let xPn = chart.scales.x.getPixelForValue(320);
-        let yPn = chart.scales.y.getPixelForValue(0.121 * 320 + 10.996) + 22;
-        ctx.fillStyle = '#dc2626';
-        ctx.fillText('y = 0.121x + 10.996', xPn, yPn);
-        
-        ctx.restore();
-      }
-    };
-
-    let tab1Chart = null;
-    function initTab1Chart() {
-      const ctx = document.getElementById('tab1Chart').getContext('2d');
-      // 교차거리 250km 기준으로 분리
-      const pgPts = stationData.filter(d => d.dist <= 250).map(d => ({ x: d.dist, y: d.travelTime }));
-      const pnPts = stationData.filter(d => d.dist > 250).map(d => ({ x: d.dist, y: d.travelTime }));
-
-      const pgLine = [{ x: 0, y: 1.5626 }, { x: 260, y: (0.1568 * 260 + 1.5626) }];
-      const pnLine = [{ x: 200, y: (0.121 * 200 + 10.996) }, { x: 480, y: (0.121 * 480 + 10.996) }];
-
-      tab1Chart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-          datasets: [
-            { label: '관측 데이터 (Pg)', data: pgPts, backgroundColor: '#2563eb', pointRadius: 5 },
-            { label: '관측 데이터 (Pn)', data: pnPts, backgroundColor: '#dc2626', pointRadius: 5 },
-            { type: 'line', label: '직접파 추세선', data: pgLine, borderColor: '#2563eb', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 0 },
-            { type: 'line', label: '굴절파 추세선', data: pnLine, borderColor: '#dc2626', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 0 }
-          ]
-        },
-        plugins: [formulaPlugin], // 수식 플러그인 장착
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            x: { type: 'linear', min: 0, max: 480, title: { display: true, text: '진앙 거리 (km)' } },
-            y: { min: 0, max: 70, title: { display: true, text: 'P파 주행 시간 (초)' } } // Y축 70 제한 유지
-          }
-        }
-      });
-    }
-
-    function switchTab(index) {
-      document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
-      document.querySelectorAll('.tab-pane').forEach((pane, i) => pane.classList.toggle('active', i === index));
-    }
-
+    // 통신 상태 UI 업데이트 래퍼 함수
     function sendDataToGAS(action, payload, statusElementId) {
       const statusSpan = document.getElementById(statusElementId);
       statusSpan.style.color = "var(--primary-light)"; statusSpan.innerText = "저장 중...";
       payload.action = action;
       payload.studentId = currentStudentId;
       
-      fetch(GAS_ENDPOINT, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      }).then(res => res.json()).then(res => {
-        statusSpan.style.color = "var(--success)"; statusSpan.innerText = "✓ 성공적으로 제출되었습니다!";
+      fetchGAS(payload)
+      .then(res => {
+        if(res.status === 'success') {
+          statusSpan.style.color = "var(--success)"; statusSpan.innerText = "✓ 성공적으로 제출되었습니다!";
+        } else {
+          statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "제출 오류 발생";
+        }
       }).catch(err => {
-        statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "제출 오류 발생";
+        statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "서버 연결 오류";
       });
     }
 
@@ -435,7 +327,86 @@
       sendDataToGAS('submitTab3', { imageBase64: uploadedImageBase64, q2_depth: q2 }, 'tab3_status');
     }
 
-    // Leaflet Map Init (기본 유지)
+    // 이하 기존과 동일한 데이터 세팅 및 캔버스 로직 
+    const baseTimeSec = 48 * 60 + 49.4;
+    const rawStations = [
+      { id: 1,  dist: 45.8,  arrStr: "48분 55.4초", arrSec: 48*60 + 55.4 }, 
+      { id: 2,  dist: 59.8,  arrStr: "49분 00.3초", arrSec: 49*60 + 0.3 },
+      { id: 3,  dist: 90.5,  arrStr: "49분 04.9초", arrSec: 49*60 + 4.9 },
+      { id: 4,  dist: 109.3, arrStr: "49분 08.5초", arrSec: 49*60 + 8.5 },
+      { id: 5,  dist: 123.0, arrStr: "49분 10.4초", arrSec: 49*60 + 10.4 },
+      { id: 6,  dist: 138.7, arrStr: "49분 16.0초", arrSec: 49*60 + 16.0 },
+      { id: 7,  dist: 150.1, arrStr: "49분 15.8초", arrSec: 49*60 + 15.8 },
+      { id: 8,  dist: 188.6, arrStr: "49분 19.9초", arrSec: 49*60 + 19.9 },
+      { id: 9,  dist: 199.4, arrStr: "49분 24.0초", arrSec: 49*60 + 24.0 },
+      { id: 10, dist: 201.7, arrStr: "49분 22.4초", arrSec: 49*60 + 22.4 },
+      { id: 11, dist: 224.8, arrStr: "49분 24.0초", arrSec: 49*60 + 24.0 },
+      { id: 12, dist: 239.4, arrStr: "49분 27.0초", arrSec: 49*60 + 27.0 },
+      { id: 13, dist: 250.0, arrStr: "49분 31.9초", arrSec: 49*60 + 31.9 },
+      { id: 14, dist: 251.0, arrStr: "49분 32.4초", arrSec: 49*60 + 32.4 },
+      { id: 15, dist: 298.0, arrStr: "49분 34.6초", arrSec: 49*60 + 34.6 },
+      { id: 16, dist: 300.0, arrStr: "49분 36.3초", arrSec: 49*60 + 36.3 },
+      { id: 17, dist: 308.2, arrStr: "49분 37.7초", arrSec: 49*60 + 37.7 },
+      { id: 18, dist: 337.5, arrStr: "49분 40.3초", arrSec: 49*60 + 40.3 },
+      { id: 19, dist: 347.0, arrStr: "49분 42.7초", arrSec: 49*60 + 42.7 },
+      { id: 20, dist: 366.7, arrStr: "49분 45.5초", arrSec: 49*60 + 45.5 },
+      { id: 21, dist: 402.0, arrStr: "49분 49.5초", arrSec: 49*60 + 49.5 },
+      { id: 22, dist: 446.4, arrStr: "49분 54.4초", arrSec: 49*60 + 54.4 }
+    ];
+    const stationData = rawStations.map(st => ({ ...st, travelTime: Number((st.arrSec - baseTimeSec).toFixed(1)) }));
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      stationData.forEach(st => { tbody.innerHTML += `<tr><td><strong>#${st.id}</strong></td><td>${st.dist.toFixed(1)}</td><td>${st.arrStr}</td><td><strong style="color:var(--primary);">${st.travelTime.toFixed(1)}</strong></td></tr>`; });
+    }
+
+    const formulaPlugin = {
+      id: 'formulaLabel',
+      afterDraw: (chart) => {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = 'bold 15px sans-serif';
+        let xPg = chart.scales.x.getPixelForValue(110);
+        let yPg = chart.scales.y.getPixelForValue(0.1568 * 110 + 1.5626) + 22; 
+        ctx.fillStyle = '#2563eb';
+        ctx.fillText('y = 0.1568x + 1.5626', xPg, yPg);
+
+        let xPn = chart.scales.x.getPixelForValue(320);
+        let yPn = chart.scales.y.getPixelForValue(0.121 * 320 + 10.996) + 22;
+        ctx.fillStyle = '#dc2626';
+        ctx.fillText('y = 0.121x + 10.996', xPn, yPn);
+        ctx.restore();
+      }
+    };
+
+    let tab1Chart = null;
+    function initTab1Chart() {
+      const ctx = document.getElementById('tab1Chart').getContext('2d');
+      const pgPts = stationData.filter(d => d.dist <= 250).map(d => ({ x: d.dist, y: d.travelTime }));
+      const pnPts = stationData.filter(d => d.dist > 250).map(d => ({ x: d.dist, y: d.travelTime }));
+      const pgLine = [{ x: 0, y: 1.5626 }, { x: 260, y: (0.1568 * 260 + 1.5626) }];
+      const pnLine = [{ x: 200, y: (0.121 * 200 + 10.996) }, { x: 480, y: (0.121 * 480 + 10.996) }];
+
+      tab1Chart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            { label: '관측 데이터 (Pg)', data: pgPts, backgroundColor: '#2563eb', pointRadius: 5 },
+            { label: '관측 데이터 (Pn)', data: pnPts, backgroundColor: '#dc2626', pointRadius: 5 },
+            { type: 'line', label: '직접파 추세선', data: pgLine, borderColor: '#2563eb', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 0 },
+            { type: 'line', label: '굴절파 추세선', data: pnLine, borderColor: '#dc2626', borderWidth: 2, borderDash: [5,5], fill: false, pointRadius: 0 }
+          ]
+        },
+        plugins: [formulaPlugin], 
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', min: 0, max: 480, title: { display: true, text: '진앙 거리 (km)' } }, y: { min: 0, max: 70, title: { display: true, text: 'P파 주행 시간 (초)' } } } }
+      });
+    }
+
+    function switchTab(index) {
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+      document.querySelectorAll('.tab-pane').forEach((pane, i) => pane.classList.toggle('active', i === index));
+    }
+
     let leafletMap = null, stationCircles = [];
     const focalDepthH = 48.0;
     const geoStations = { A: { lat: 37.4563, lng: 126.7052, color: "#2563eb" }, B: { lat: 35.1796, lng: 129.0756, color: "#9333ea" }, C: { lat: 35.1595, lng: 126.8526, color: "#16a34a" } };
@@ -468,7 +439,6 @@
       });
     }
 
-    // 모의 구현 (Chart 2)
     function initChart() {}
     function updateAllModels() {
       const v1 = parseFloat(document.getElementById('paramV1').value);
@@ -482,6 +452,13 @@
         document.getElementById('calcResultDisplay').innerHTML = `산출된 지각의 두께 (d): <strong>${calc.toFixed(1)} km</strong>`;
       }
     }
+
+    // 시뮬레이션 빈 캔버스 에러 방지용 더미(dummy) 로직
+    const simCanvas = document.getElementById('waveCanvas'); const simCtx = simCanvas.getContext('2d');
+    let simIsPlaying = false, simCurrentTime = 0;
+    function updateSimDist() { document.getElementById('simDistVal').innerText = document.getElementById('simDist').value + ' km'; }
+    function simStep() { if(!simIsPlaying) return; simCurrentTime += 0.28; if(simCurrentTime > 40) { simIsPlaying=false; simCurrentTime=0; return; } document.getElementById('simTimer').innerText = simCurrentTime.toFixed(1) + ' s'; requestAnimationFrame(simStep); }
+    function toggleSim() { simIsPlaying = !simIsPlaying; if(simIsPlaying) simStep(); }
 
     window.addEventListener('DOMContentLoaded', () => {
       renderTable(); initTab1Chart(); initLeafletMap(); updateAllModels();
