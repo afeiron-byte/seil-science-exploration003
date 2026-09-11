@@ -673,13 +673,13 @@
           </table>
         </div>
 
-        <!-- Y축 범위를 확장하고 전체 높이를 2배로 증가시킨 그래프 -->
+        <!-- Y축 높이는 유지하되 max값을 70으로 수정 -->
         <div style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 24px;">
           <h3 style="font-size: 1.18rem; color: var(--primary); margin-bottom: 8px;">
             📈 관측 데이터를 이용한 진앙 거리 - P파 주행 시간 그래프
           </h3>
-          <p class="desc">표의 진앙 거리와 P파 주행 시간 데이터를 분산형 차트로 시각화한 주시곡선입니다. </p>
-          <div style="position: relative; height: 700px;"> <!-- 기존 350px -> 700px 로 2배 확장 -->
+          <p class="desc">표의 진앙 거리와 P파 주행 시간 데이터를 분산형 차트로 시각화한 주시곡선입니다.</p>
+          <div style="position: relative; height: 700px;">
             <canvas id="tab1Chart"></canvas>
           </div>
         </div>
@@ -718,7 +718,6 @@
           </div>
 
           <div style="margin-top: 14px;">
-            <!-- 버튼 이름 간소화 -->
             <button class="btn-submit" onclick="submitTab1Answers()">답변 제출</button>
             <span id="tab1_status" style="margin-left:12px; font-size:0.88rem; font-weight:600;"></span>
           </div>
@@ -787,7 +786,6 @@
                 <textarea id="tab2_q3" class="auto-textarea" style="min-height:95px;" placeholder="답변을 입력하세요 (v₁, v₂, d 변화 시 D의 변화와 물리적 이유 서술)..." oninput="autoResize(this)"></textarea>
               </div>
 
-              <!-- 버튼 이름 간소화 -->
               <button class="btn-submit" onclick="submitTab2Answers()">답변 제출</button>
               <span id="tab2_status" style="margin-left:12px; font-size:0.88rem; font-weight:600;"></span>
             </div>
@@ -858,8 +856,8 @@
               <div>
                 <label style="font-weight:bold; color:#2563eb;">A(인천):</label>
                 <select id="selectIncheon" onchange="onStationSelectionChange()">
+                  <!-- 인천 데이터는 관측소 10번만 남김 -->
                   <option value="10">관측소 #10 (진앙거리 201.7 km)</option>
-                  <option value="8">관측소 #8 (진앙거리 188.6 km)</option>
                 </select>
               </div>
               <div>
@@ -915,7 +913,6 @@
             </div>
 
             <div style="margin-top: 18px;">
-              <!-- 버튼 이름 간소화 -->
               <button class="btn-submit" onclick="submitTab3Answers()">답변 및 그림 제출</button>
               <span id="tab3_status" style="margin-left:12px; font-size:0.88rem; font-weight:600;"></span>
             </div>
@@ -931,7 +928,7 @@
     /* =========================================================================
        전역 설정 (선생님이 여기에 구글 앱스 스크립트 웹앱 URL을 입력하세요)
        ========================================================================= */
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwOaMmVX4VPlplhxXU05mas-athMnX7hGgV_PwMB_TBiJ5CiCotzF8c74n8tlFxNzN_zA/exec"; // 예: "https://script.google.com/macros/s/AKfyc.../exec"
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwOaMmVX4VPlplhxXU05mas-athMnX7hGgV_PwMB_TBiJ5CiCotzF8c74n8tlFxNzN_zA/exec";
 
     let currentStudentId = "";
     let currentPassword = "";
@@ -972,12 +969,11 @@
 
       document.getElementById('loginModal').style.display = 'none';
 
-      // 구글 스프레드시트 로그인 기록 연동
+      // 구글 스프레드시트 로그인 기록 연동 - mode: 'no-cors' 제거, Content-Type: 'text/plain' 적용
       if (GAS_ENDPOINT) {
         fetch(GAS_ENDPOINT, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'login',
             studentId: currentStudentId,
@@ -1397,7 +1393,7 @@
           plugins: { title: { display: true, text: '진앙 거리 - P파 주행 시간 그래프 (주시곡선)', font: { size: 14, weight: 'bold' } }, legend: { position: 'top' } },
           scales: {
             x: { type: 'linear', position: 'bottom', title: { display: true, text: '진앙 거리 (km)' }, min: 0, max: 480 },
-            y: { title: { display: true, text: 'P파 주행 시간 (초)' }, min: 0, max: 140 } // Y축 2배(140초) 확장
+            y: { title: { display: true, text: 'P파 주행 시간 (초)' }, min: 0, max: 70 } // Y축 물리적 길이는 유지하되 최대값 70으로 수정
           }
         }
       });
@@ -1720,15 +1716,19 @@
       const statusSpan = document.getElementById('tab1_status');
 
       if (!q1 || !q2) { alert("1번과 2번 질문에 대한 답변을 모두 작성해 주세요."); return; }
+      
+      // 구글 시트 연동: mode: 'no-cors' 제거, Content-Type: 'text/plain' 적용
       if (GAS_ENDPOINT) {
         statusSpan.style.color = "var(--primary-light)"; statusSpan.innerText = "저장 중...";
         fetch(GAS_ENDPOINT, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'submitTab1', studentId: currentStudentId, q1: q1, q2: q2 })
-        }).then(() => {
+        }).then(res => res.json()).then(() => {
           statusSpan.style.color = "var(--success)"; statusSpan.innerText = "✓ 성공적으로 제출되었습니다!";
         }).catch(err => {
           statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "제출 오류 발생";
+          console.error(err);
         });
       } else {
         alert("교사용 Web App URL이 설정되지 않아 브라우저에 임시 저장되었습니다.");
@@ -1743,15 +1743,19 @@
       const statusSpan = document.getElementById('tab2_status');
 
       if (!q1 || !q2 || !q3) { alert("3가지 질문에 대한 답변을 모두 작성해 주세요."); return; }
+      
+      // 구글 시트 연동: mode: 'no-cors' 제거, Content-Type: 'text/plain' 적용
       if (GAS_ENDPOINT) {
         statusSpan.style.color = "var(--primary-light)"; statusSpan.innerText = "저장 중...";
         fetch(GAS_ENDPOINT, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'submitTab2', studentId: currentStudentId, q1: q1, q2: q2, q3: q3 })
-        }).then(() => {
+        }).then(res => res.json()).then(() => {
           statusSpan.style.color = "var(--success)"; statusSpan.innerText = "✓ 성공적으로 제출되었습니다!";
         }).catch(err => {
           statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "제출 오류 발생";
+          console.error(err);
         });
       } else {
         alert("교사용 Web App URL이 설정되지 않아 브라우저에 임시 저장되었습니다.");
@@ -1780,15 +1784,18 @@
       if (!uploadedImageBase64) { alert("진앙을 표시한 이미지를 첨부해 주세요."); return; }
       if (!q2) { alert("2번 진원 깊이 풀이 과정을 작성해 주세요."); return; }
 
+      // 구글 시트 연동: mode: 'no-cors' 제거, Content-Type: 'text/plain' 적용
       if (GAS_ENDPOINT) {
         statusSpan.style.color = "var(--primary-light)"; statusSpan.innerText = "저장 중...";
         fetch(GAS_ENDPOINT, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'submitTab3', studentId: currentStudentId, imageBase64: uploadedImageBase64, q2_depth: q2 })
-        }).then(() => {
+        }).then(res => res.json()).then(() => {
           statusSpan.style.color = "var(--success)"; statusSpan.innerText = "✓ 성공적으로 제출되었습니다!";
         }).catch(err => {
           statusSpan.style.color = "var(--accent)"; statusSpan.innerText = "제출 오류 발생";
+          console.error(err);
         });
       } else {
         alert("교사용 Web App URL이 설정되지 않아 브라우저에 임시 저장되었습니다.");
