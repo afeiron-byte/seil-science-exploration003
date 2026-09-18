@@ -93,17 +93,46 @@
     .status-no { background: #fee2e2; color: #991b1b; }
 
     /* PDF 렌더링용 템플릿 숨김 */
-    #pdf-template-container { position: absolute; left: -9999px; top: 0; }
-    .pdf-page { width: 800px; padding: 40px; background: white; font-family: sans-serif; color: #1e293b; line-height: 1.6; }
+    #pdf-template-container { 
+      position: absolute; 
+      top: 0;
+      left: 0; 
+      z-index: -9999; 
+      opacity: 0.001; /* visibility: hidden 대신 opacity를 사용하여 렌더링 엔진이 무시하지 않도록 변경 */
+      pointer-events: none; /* 다른 버튼(로그인 등) 클릭을 방해하지 않도록 완벽 차단 */
+      width: 1400px; /* B4 가로 사이즈에 맞게 너비 충분히 확보 */
+      background: #ffffff; 
+      box-sizing: border-box; 
+    }
+    
+    /* PDF 출력 사이즈 설정 (B4 가로 기준 폭 설정 및 내부 여백 강제 적용) */
+    .pdf-page { 
+      width: 100%; 
+      background: white; 
+      font-family: sans-serif; 
+      color: #1e293b; 
+      line-height: 1.6; 
+      padding: 40px 40px 40px 100px; /* 위 40, 오른쪽 40, 아래 40, 왼쪽 100px 여백으로 왼쪽 여백 확장 */
+      box-sizing: border-box;
+    }
+    
     .pdf-header { border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
     .pdf-header img { height: 45px; }
     .pdf-header h1 { font-size: 1.6rem; color: #1e3a8a; margin: 0; }
     .pdf-info { display: flex; justify-content: space-between; font-size: 1rem; color: #475569; margin-bottom: 25px;}
-    .pdf-section { margin-bottom: 25px; }
+    
+    /* 문제 구역이나 박스가 페이지 중간에 잘리지 않게 설정 */
+    .pdf-section { margin-bottom: 25px; page-break-inside: avoid; }
+    
+    /* 탭마다 강제로 다음 페이지로 넘기기 위한 클래스 */
+    .page-break { page-break-before: always; }
+    
     .pdf-section h2 { font-size: 1.2rem; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px; }
-    .pdf-q-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 12px; }
+    .pdf-q-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 12px; page-break-inside: avoid; }
     .pdf-q-title { font-weight: bold; margin-bottom: 8px; font-size: 0.95rem; }
-    .pdf-a-text { white-space: pre-wrap; background: white; padding: 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95rem; }
+    
+    /* 텍스트가 박스를 넘어가지 않도록 자동 줄바꿈 추가 */
+    .pdf-a-text { white-space: pre-wrap; background: white; padding: 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95rem; word-break: break-word; }
   </style>
 </head>
 <body>
@@ -130,7 +159,7 @@
   <!-- 2. 헤더 영역 -->
   <header>
     <div class="header-title-container">
-      <img src="세일고CI-01.png" alt="세일고 로고" class="header-logo">
+      <img src="세일고CI-01.png" alt="세일고 로고" class="header-logo" onerror="this.style.display='none'">
       <h1>지구시스템과학 인터랙티브 탐구실</h1>
     </div>
     
@@ -168,7 +197,6 @@
   </div>
 
   <!-- 4. 학생 전용 탐구 화면 -->
-  <!-- BUG FIX: flex-direction: column을 명시하여 탭 메뉴와 컨텐츠가 위아래로 올바르게 정렬되도록 수정 -->
   <div id="student-view" style="display:none; flex:1; flex-direction: column;">
     <nav class="tab-nav">
       <button class="tab-btn active" onclick="switchTab(0)">1. P파 주행시간 기초자료</button>
@@ -348,7 +376,7 @@
               <div class="image-preview-container">
                 <input type="file" id="epicenterImageInput" accept="image/*" onchange="handleImageUpload(event)" style="font-size:0.9rem;">
                 <p style="font-size:0.8rem; color:#64748b; margin-top:6px;">* 그림판에서 공통현의 교점(진앙 E)을 표시한 뒤 저장한 이미지 파일을 선택하세요.</p>
-                <img id="imagePreview" class="image-preview" alt="미리보기">
+                <img id="imagePreview" class="image-preview" alt="미 미리보기">
               </div>
             </div>
             
@@ -368,10 +396,14 @@
   </div>
 
   <!-- 5. PDF 렌더링을 위한 숨겨진 HTML 템플릿 -->
+  <!-- 
+       pdf 생성 시 왼쪽이 잘리는 현상을 막기 위해 
+       화면상에서는 보이지 않지만 좌표 체계에 영향을 주지 않는 방식으로 숨김 처리
+  -->
   <div id="pdf-template-container">
     <div id="pdf-content" class="pdf-page">
       <div class="pdf-header">
-        <img src="세일고CI-01.png" alt="세일고 로고">
+        <img src="세일고CI-01.png" alt="세일고 로고" onerror="this.style.display='none'">
         <h1>지구시스템과학 탐구활동 보고서</h1>
       </div>
       <div class="pdf-info">
@@ -379,6 +411,7 @@
         <div><strong>이름:</strong> <span id="pdf-student-name"></span></div>
       </div>
 
+      <!-- 첫 번째 탭 섹션 -->
       <div class="pdf-section">
         <h2>1. P파 주행시간 기초자료 및 지각 두께</h2>
         <div class="pdf-q-box">
@@ -391,7 +424,8 @@
         </div>
       </div>
 
-      <div class="pdf-section">
+      <!-- 두 번째 탭 섹션 (새 페이지에서 시작) -->
+      <div class="pdf-section page-break">
         <h2>2. 주시곡선 심층 해석 과제</h2>
         <div class="pdf-q-box">
           <div class="pdf-q-title">Q1. 직접파 추세선의 기울기보다 굴절파 추세선의 기울기가 완만한 이유를 서술하시오.</div>
@@ -407,12 +441,13 @@
         </div>
       </div>
 
-      <div class="pdf-section">
+      <!-- 세 번째 탭 섹션 (새 페이지에서 시작) -->
+      <div class="pdf-section page-break">
         <h2>3. 지도 기반 진앙 및 진원 깊이 결정</h2>
         <div class="pdf-q-box">
           <div class="pdf-q-title">과제 1. 진앙 지점을 표시한 첨부 이미지</div>
           <div style="text-align:center; padding:10px; background:white; border: 1px solid #cbd5e1; border-radius:4px;">
-            <img id="pdf-t3-img" style="max-width:100%; max-height:300px; display:none;" />
+            <img id="pdf-t3-img" style="max-width:100%; max-height:400px; object-fit:contain; display:none;" />
             <div id="pdf-t3-noimg" style="color:#ef4444; font-size:0.9rem;">첨부된 이미지가 없습니다.</div>
           </div>
         </div>
@@ -607,24 +642,57 @@
       const noImgEl = document.getElementById('pdf-t3-noimg');
       if (ans.t3_img && ans.t3_img.startsWith('data:image')) {
         imgEl.src = ans.t3_img;
+        imgEl.onload = () => {
+          generatePDF();
+        };
         imgEl.style.display = 'inline-block';
         noImgEl.style.display = 'none';
       } else {
         imgEl.style.display = 'none';
         noImgEl.style.display = 'block';
+        generatePDF();
       }
 
-      const element = document.getElementById('pdf-content');
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `지구시스템과학_보고서_${sId}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      alert(`${sId} 학생의 PDF 생성을 시작합니다. 잠시만 기다려주세요.`);
-      html2pdf().set(opt).from(element).save();
+      function generatePDF() {
+        const element = document.getElementById('pdf-content');
+        
+        // 1. 화면 스크롤을 맨 위로 강제 이동 (html2canvas 좌표 오인으로 인한 잘림 방지)
+        const originalScrollY = window.scrollY;
+        const originalScrollX = window.scrollX;
+        window.scrollTo(0, 0);
+
+        // 2. 렌더링을 위해 투명도를 잠시 1로 변경
+        const container = document.getElementById('pdf-template-container');
+        container.style.opacity = '1';
+
+        // 3. B4 사이즈 및 옵션 설정
+        const opt = {
+          margin: [10, 10, 10, 10], // 상하좌우 균일 마진
+          filename: `지구시스템과학_보고서_${sId}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            scrollX: 0, 
+            scrollY: 0, 
+            windowWidth: 1400 
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: 'b4', 
+            orientation: 'landscape' 
+          },
+          pagebreak: { mode: ['css', 'legacy'] } 
+        };
+        
+        alert(`${sId} 학생의 PDF 생성을 시작합니다. 잠시만 기다려주세요.`);
+
+        // 4. PDF 생성 후 다시 숨김 및 스크롤 원위치
+        html2pdf().set(opt).from(element).save().then(() => {
+          container.style.opacity = '0.001';
+          window.scrollTo(originalScrollX, originalScrollY);
+        });
+      }
     }
 
     function handleImageUpload(e) {
@@ -966,4 +1034,3 @@
   </script>
 </body>
 </html>
-```eof
